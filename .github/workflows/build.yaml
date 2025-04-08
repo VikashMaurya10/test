@@ -2,7 +2,9 @@ name: CI - Lint & Build with Bun
 
 on:
   pull_request_target:
-    branches: [master]
+    types: [opened, synchronize, reopened]
+    branches:
+      - master
 
 permissions:
   contents: read
@@ -31,13 +33,14 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Install ESLint
-        run: bun add -d eslint
+      - name: Install ESLint and Reviewdog (dev deps)
+        run: |
+          bun add -d eslint
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b . latest
 
       - name: Run ESLint and Report via Reviewdog
         run: |
           bunx eslint . --format json > eslint-report.json || true
-          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b . latest
           ./reviewdog -f=eslint -name="eslint" -reporter=github-pr-review < eslint-report.json
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
