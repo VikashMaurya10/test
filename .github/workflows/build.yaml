@@ -49,12 +49,21 @@ jobs:
 
       - name: Build Project
         id: build
-        continue-on-error: true
         run: |
-          bun run build 2>&1 | tee build.log || echo "::set-output name=failure::true"
+          bun run build 2>&1 | tee build.log
+        continue-on-error: true
 
-      - name: Report Build Failure in Summary (if any)
-        if: steps.build.outcome == 'failure'
+      - name: Set Build Status
+        id: set_status
+        run: |
+          if [ "${{ steps.build.outcome }}" == "failure" ]; then
+            echo "build_failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "build_failed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Report Build Failure in Summary
+        if: steps.set_status.outputs.build_failed == 'true'
         run: |
           echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
           echo '```log' >> $GITHUB_STEP_SUMMARY
@@ -62,7 +71,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Comment Build Failure on PR (with log tail)
-        if: steps.build.outcome == 'failure'
+        if: steps.set_status.outputs.build_failed == 'true'
         uses: actions/github-script@v6
         with:
           script: |
@@ -76,7 +85,7 @@ jobs:
             });
 
       - name: Comment Setup Success on PR
-        if: ${{ success() }}
+        if: steps.set_status.outputs.build_failed == 'false'
         uses: actions/github-script@v6
         with:
           script: |
