@@ -24,6 +24,14 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
+      - name: ✅ Check Environment Variables
+        run: |
+          echo "Checking required environment variables..."
+          test -n "$API_URL" && echo "✅ API_URL is set" || (echo "❌ API_URL is missing" && exit 1)
+          test -n "$NEXTAUTH_SECRET" && echo "✅ NEXTAUTH_SECRET is set" || (echo "❌ NEXTAUTH_SECRET is missing" && exit 1)
+          test -n "$NEXTAUTH_URL" && echo "✅ NEXTAUTH_URL is set" || (echo "❌ NEXTAUTH_URL is missing" && exit 1)
+          test -n "$NEXT_PUBLIC_APP_URL" && echo "✅ NEXT_PUBLIC_APP_URL is set" || (echo "❌ NEXT_PUBLIC_APP_URL is missing" && exit 1)
+
       - name: Lint with ESLint & Reviewdog
         run: bunx eslint . -f json | bunx reviewdog -f=eslint -name="eslint" -reporter=github-pr-review
 
