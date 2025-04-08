@@ -25,7 +25,12 @@ jobs:
         run: bun install
 
       - name: Lint with ESLint & Reviewdog
-        run: bunx eslint . -f json | bunx reviewdog -f=eslint -name="eslint" -reporter=github-pr-review
+        uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          eslint_flags: '.'
+          fail_on_error: true
 
       - name: ✅ Check Environment Variables
         run: |
