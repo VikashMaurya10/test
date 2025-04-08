@@ -1,4 +1,4 @@
-name: CI - Lint & Build (Bun)
+name: CI - Lint & Build with Bun
 
 on:
   pull_request:
@@ -24,13 +24,14 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Install Lint Tools (eslint & reviewdog)
-        run: bun add -d eslint reviewdog
+      - name: Install ESLint
+        run: bun add -d eslint
 
       - name: Run ESLint and Report via Reviewdog
         run: |
-          bunx eslint . --output-file eslint-report.json --format json || true
-          bunx reviewdog -f=eslint -name=eslint -reporter=github-pr-review < eslint-report.json
+          bunx eslint . --format json > eslint-report.json || true
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b . latest
+          ./reviewdog -f=eslint -name="eslint" -reporter=github-pr-review < eslint-report.json
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -57,7 +58,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Build Log to PR Summary (if failed)
-        if: always() && steps.build.outcome == 'failure'
+        if: failure() && steps.build.outcome == 'failure'
         run: |
           if [ -f build.log ]; then
             echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
@@ -65,14 +66,14 @@ jobs:
             tail -n 50 build.log >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           else
-            echo "### ❌ Build failed, but no build log was generated." >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Build failed but no log generated." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Final Status Check
         if: always()
         run: |
           if [[ "${{ steps.envcheck.outputs.env_status }}" == "1" ]]; then
-            echo "❌ Missing one or more required environment variables"
+            echo "❌ Missing required environment variables"
             exit 1
           fi
 
@@ -82,3 +83,4 @@ jobs:
           fi
 
           echo "✅ All checks passed"
+          
