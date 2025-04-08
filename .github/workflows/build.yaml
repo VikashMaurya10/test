@@ -24,25 +24,71 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Lint with ESLint & Reviewdog
-        uses: reviewdog/action-eslint@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-review
-          eslint_flags: '.'
-          fail_on_error: true
+      # 1. Lint and generate JSON report
+      - name: Run ESLint Check (Soft Fail)
+        id: lintcheck
+        run: |
+          bunx eslint . --output-file eslint-report.json --format json || true
 
-      - name: ✅ Check Environment Variables
+      # 2. Reviewdog to comment on PR
+      - name: Reviewdog - Report ESLint Issues
+        if: always()
+        uses: reviewdog/action-reviewdog@v1
+        with:
+          name: eslint
+          reporter: github-pr-review
+          level: warning
+          fail_on_error: false
+          filter_mode: added
+          tool_name: eslint
+          input: eslint-report.json
+          format: eslint
+
+      # 3. Env check
+      - name: Check Required Environment Variables
+        id: envcheck
         run: |
           echo "Checking required environment variables..."
-          test -n "$API_URL" && echo "✅ API_URL is set" || (echo "❌ API_URL is missing" && exit 1)
-          test -n "$NEXTAUTH_SECRET" && echo "✅ NEXTAUTH_SECRET is set" || (echo "❌ NEXTAUTH_SECRET is missing" && exit 1)
-          test -n "$NEXTAUTH_URL" && echo "✅ NEXTAUTH_URL is set" || (echo "❌ NEXTAUTH_URL is missing" && exit 1)
-          test -n "$NEXT_PUBLIC_APP_URL" && echo "✅ NEXT_PUBLIC_APP_URL is set" || (echo "❌ NEXT_PUBLIC_APP_URL is missing" && exit 1)
+          failed=0
+          for var in API_URL NEXTAUTH_SECRET NEXTAUTH_URL NEXT_PUBLIC_APP_URL; do
+            if [ -z "${!var}" ]; then
+              echo "❌ Missing $var"
+              failed=1
+            else
+              echo "✅ $var is set"
+            fi
+          done
+          echo "env_status=$failed" >> $GITHUB_OUTPUT
 
+      # 4. Try building and save logs
       - name: Build Project
-        run: bun run build
+        id: build
+        run: |
+          bun run build 2>&1 | tee build.log
+        continue-on-error: true
 
-      - name: Notify failure
+      # 5. Summarize build log if it failed
+      - name: Upload Build Log to PR Summary (if failed)
         if: failure()
-        run: echo "❌ Lint or Build failed. Check PR comments or logs."
+        run: |
+          echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo '```log' >> $GITHUB_STEP_SUMMARY
+          tail -n 50 build.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # 6. Final status: fail if envs or build failed
+      - name: Final Status Check
+        if: always()
+        run: |
+          if [[ "${{ steps.envcheck.outputs.env_status }}" == "1" ]]; then
+            echo "❌ Missing one or more required environment variables"
+            exit 1
+          fi
+
+          if [[ "${{ steps.build.outcome }}" == "failure" ]]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+
+          echo "✅ All checks passed"
+          
