@@ -83,3 +83,20 @@ jobs:
           fi
 
           echo "✅ All checks passed"
+
+      - name: Comment on PR if all checks passed
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            if (pr) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: "✅ All setup completed. Ready to deploy on server."
+              });
+            }
+            
