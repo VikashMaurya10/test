@@ -41,3 +41,15 @@ jobs:
       - name: Notify failure
         if: failure()
         run: echo "❌ Lint or Build failed. Check PR comments or logs."
+
+      - name: Comment on PR - Ready to Deploy
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "✅ All checks passed! This PR is ready to deploy to the server."
+            })
