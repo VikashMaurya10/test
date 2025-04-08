@@ -47,39 +47,41 @@ jobs:
           test -n "$NEXTAUTH_SECRET" && echo "NEXTAUTH_SECRET loaded"
           test -n "$NEXTAUTH_URL" && echo "NEXTAUTH_URL loaded"
 
-      - name: Run Build and Capture Result
+      - name: Build Project
         id: buildstep
-        continue-on-error: true
         run: |
           bun run build 2>&1 | tee build.log
-          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
-
-      - name: Report Build Failure via Reviewdog
-        if: steps.buildstep.outputs.exit_code != '0'
         continue-on-error: true
+
+      - name: Report Build Failure in Summary
+        if: steps.buildstep.outcome == 'failure'
         run: |
-          cat build.log | ./reviewdog -efm="%f:%l:%c: %m" -name="build" -reporter=github-pr-review || true
+          echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo '```log' >> $GITHUB_STEP_SUMMARY
+          sed -r "s/\x1B\[[0-9;]*[mK]//g" build.log | grep -E "Error|Syntax" | tail -n 30 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Prepare Clean Build Log for Comment
+        if: steps.buildstep.outcome == 'failure'
+        run: |
+          sed -r "s/\x1B\[[0-9;]*[mK]//g" build.log | grep -E "Error|Syntax" | tail -n 30 > short_build.log
 
       - name: Comment Build Failure on PR
-        if: steps.buildstep.outputs.exit_code != '0'
+        if: steps.buildstep.outcome == 'failure'
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
-            const logs = fs.readFileSync('build.log', 'utf8').split('\n').slice(-30).join('\n');
+            const log = fs.readFileSync('short_build.log', 'utf8');
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `❌ **Build failed.**\n\n\`\`\`log\n${logs}\n\`\`\``
+              body: `❌ **Build failed.**\n\n\`\`\`log\n${log.trim()}\n\`\`\``
             });
 
-      - name: Fail Workflow if Build Failed
-        if: steps.buildstep.outputs.exit_code != '0'
-        run: exit 1
-
       - name: Comment Setup Success on PR
-        if: steps.buildstep.outputs.exit_code == '0' && success()
+        if: ${{ success() }}
         uses: actions/github-script@v6
         with:
           script: |
@@ -89,4 +91,8 @@ jobs:
               repo: context.repo.repo,
               body: "✅ All setup completed. Ready to deploy on server."
             })
-          
+
+      - name: Fail Workflow if Build Fails
+        if: steps.buildstep.outcome == 'failure'
+        run: exit 1
+      
