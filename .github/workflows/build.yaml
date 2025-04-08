@@ -54,6 +54,12 @@ jobs:
           bun run build 2>&1 | tee build.log
           echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
 
+      - name: Report Build Failure via Reviewdog
+        if: steps.buildstep.outputs.exit_code != '0'
+        continue-on-error: true
+        run: |
+          cat build.log | ./reviewdog -efm="%f:%l:%c: %m" -name="build" -reporter=github-pr-review || true
+
       - name: Comment Build Failure on PR
         if: steps.buildstep.outputs.exit_code != '0'
         uses: actions/github-script@v6
