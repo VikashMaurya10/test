@@ -1,0 +1,40 @@
+name: CI - Lint & Build (Bun)
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ secrets.API_URL }}
+      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXT_AUTH_SECRET }}
+      NEXTAUTH_URL: ${{ secrets.NEXT_AUTH_APP_URL }}
+      REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+       run: |
+            echo "✅ API_URL is set: ${API_URL:+Yes}"
+            echo "✅ NEXT_PUBLIC_APP_URL is set: ${NEXT_PUBLIC_APP_URL:+Yes}"
+            echo "✅ NEXTAUTH_SECRET is set: ${NEXTAUTH_SECRET:+Yes}"
+            echo "✅ NEXTAUTH_URL is set: ${NEXTAUTH_URL:+Yes}"
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Lint with ESLint & Reviewdog
+        run: bunx eslint . -f json | bunx reviewdog -f=eslint -name="eslint" -reporter=github-pr-review
+
+      - name: Build Project
+        run: bun run build
+
+      - name: Notify failure
+        if: failure()
+        run: echo "❌ Lint or Build failed. Check PR comments or logs."
