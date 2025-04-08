@@ -13,11 +13,6 @@ jobs:
       NEXTAUTH_SECRET: ${{ secrets.NEXT_AUTH_SECRET }}
       NEXTAUTH_URL: ${{ secrets.NEXT_AUTH_APP_URL }}
       REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-       run: |
-            echo "✅ API_URL is set: ${API_URL:+Yes}"
-            echo "✅ NEXT_PUBLIC_APP_URL is set: ${NEXT_PUBLIC_APP_URL:+Yes}"
-            echo "✅ NEXTAUTH_SECRET is set: ${NEXTAUTH_SECRET:+Yes}"
-            echo "✅ NEXTAUTH_URL is set: ${NEXTAUTH_URL:+Yes}"
 
     steps:
       - name: Checkout Repository
@@ -31,6 +26,14 @@ jobs:
 
       - name: Lint with ESLint & Reviewdog
         run: bunx eslint . -f json | bunx reviewdog -f=eslint -name="eslint" -reporter=github-pr-review
+
+      - name: ✅ Check Environment Variables
+        run: |
+          echo "Checking required environment variables..."
+          test -n "$API_URL" && echo "✅ API_URL is set" || (echo "❌ API_URL is missing" && exit 1)
+          test -n "$NEXTAUTH_SECRET" && echo "✅ NEXTAUTH_SECRET is set" || (echo "❌ NEXTAUTH_SECRET is missing" && exit 1)
+          test -n "$NEXTAUTH_URL" && echo "✅ NEXTAUTH_URL is set" || (echo "❌ NEXTAUTH_URL is missing" && exit 1)
+          test -n "$NEXT_PUBLIC_APP_URL" && echo "✅ NEXT_PUBLIC_APP_URL is set" || (echo "❌ NEXT_PUBLIC_APP_URL is missing" && exit 1)
 
       - name: Build Project
         run: bun run build
