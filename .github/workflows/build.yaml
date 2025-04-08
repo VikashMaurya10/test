@@ -1,8 +1,12 @@
 name: CI - Lint & Build with Bun
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [master]
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   lint-and-build:
@@ -17,6 +21,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -99,4 +106,3 @@ jobs:
                 body: "✅ All setup completed. Ready to deploy on server."
               });
             }
-            
