@@ -40,7 +40,7 @@ jobs:
              github_token: ${{ secrets.GITHUB_TOKEN }}
              reporter: github-pr-review
              eslint_flags: 'src/'
-             fail_level: false
+             fail_level: 'error'
 
       - name: Check Environment Variables
         run: |
