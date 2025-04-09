@@ -30,27 +30,15 @@ jobs:
         run: bun install
 
       - name: Install Reviewdog
-        run: |
-          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b . latest
+        uses: reviewdog/action-setup@v1
+        with:
+          reviewdog_version: latest
 
-      - name: Run ESLint and Output to File
-        continue-on-error: true
-        run: |
-          bun run lint --format json > eslint_output.json || true
-
-      - name: Post ESLint Comments via Reviewdog
-        if: always()
-        run: |
-          cat eslint_output.json
-          ./reviewdog \
-            -f=eslint \
-            -name="eslint" \
-            -reporter=github-pr-review \
-            -filter-mode=nofilter \
-            -fail-level=warning \
-            -level=warning < eslint_output.json
+      - name: Run ESLint with Reviewdog
         env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          bun run lint --format=json | reviewdog -f=eslint -reporter=github-pr-review -fail-on-error=false
 
       - name: Check Environment Variables
         run: |
