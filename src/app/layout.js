@@ -17,6 +17,7 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const sdf = "sdklfj";
   return (
     <html lang="en">
       <body
