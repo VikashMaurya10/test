@@ -33,10 +33,20 @@ jobs:
         run: |
           curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b . latest
 
-      - name: Run ESLint and Report via Reviewdog
+      - name: Run ESLint and Output to File
         continue-on-error: true
         run: |
-          bun run lint . -f json || true | tee eslint_output.json | ./reviewdog -f=eslint -name="eslint" -reporter=github-pr-review -fail-on-error=true
+          bun run lint . -f json > eslint_output.json || true
+
+      - name: Post ESLint Comments via Reviewdog
+        run: |
+          ./reviewdog \
+            -f=eslint \
+            -name="eslint" \
+            -reporter=github-pr-review \
+            -filter-mode=nofilter \
+            -fail-on-error=true \
+            -level=warning < eslint_output.json
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
