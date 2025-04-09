@@ -35,7 +35,7 @@ const defineConfig = [
       prettier: eslintPrettier
     },
     rules: {
-      'no-unused-vars': ['warn', { vars: 'all', args: 'after-used', ignoreRestSiblings: true }],
+     'no-unused-vars': 'error',
       'validate-filename/naming-rules': [
         'error',
         {
