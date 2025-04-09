@@ -36,10 +36,12 @@ jobs:
       - name: Run ESLint and Output to File
         continue-on-error: true
         run: |
-          bun run lint . -f json > eslint_output.json || true
+          bun run lint --format json > eslint_output.json || true
 
       - name: Post ESLint Comments via Reviewdog
+        if: always()
         run: |
+          cat eslint_output.json
           ./reviewdog \
             -f=eslint \
             -name="eslint" \
