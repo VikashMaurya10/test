@@ -34,9 +34,9 @@ jobs:
         with:
           reviewdog_version: latest
 
-       - name: Run ESLint with Reviewdog
-           uses: reviewdog/action-eslint@v1
-           with:
+      - name: Run ESLint with Reviewdog
+        uses: reviewdog/action-eslint@v1
+        with:
              github_token: ${{ secrets.GITHUB_TOKEN }}
              reporter: github-pr-review
              eslint_flags: 'src/'
