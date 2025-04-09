@@ -29,15 +29,14 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Install ESLint and Reviewdog (dev deps)
+      - name: Install Reviewdog (dev deps)
         run: |
-          bun add -d eslint
           curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b . latest
 
-      - name: Run ESLint via Reviewdog
+      - name: Run ESLint and report via Reviewdog
         continue-on-error: true
         run: |
-          bunx eslint . -f json | tee eslint_output.json | ./reviewdog -f=eslint -name="eslint" -reporter=github-pr-review
+          bun run lint . -f json | tee eslint_output.json | ./reviewdog -f=eslint -name="eslint" -reporter=github-pr-review -fail-on-error=false
 
       - name: Check Environment Variables
         run: |
