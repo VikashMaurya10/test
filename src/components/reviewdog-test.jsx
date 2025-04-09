@@ -3,7 +3,7 @@
 const unusedVar = 42;
 
 function greet(name) {
-  const internalMessage = "Hello"; // unused
+  const internalMessage = "Hello";
   return `Hi, ${name}`;
 }
 
